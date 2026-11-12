@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <!-- iPadでのピンチイン・ピンチアウトによる拡大縮小を許可するviewport設定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中3理科：うすい塩酸と水酸化ナトリウム水溶液の中和とイオンの変化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&display=swap');
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            /* 誤選択を防ぎつつ、iPadでのピンチズーム(manipulation)を全面的に許可 */
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* 立体感のある操作ボタン */
+        .action-btn {
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+        }
+        .action-btn:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+        }
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* 化学式の上付き・下付き文字の調整 */
+        sub { font-size: 0.72em; vertical-align: -0.2em; }
+        sup { font-size: 0.72em; vertical-align: 0.35em; }
+
+        /* SVGグラフ内のテキスト設定 */
+        svg text {
+            font-family: 'Noto Sans JP', sans-serif;
+            user-select: none;
+        }
+        .graph-grid-hit {
+            cursor: pointer;
+        }
+        .graph-grid-hit:hover {
+            fill: rgba(250, 204, 21, 0.22);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 md:p-3 gap-2 max-w-[1440px] mx-auto">
+
+    <!-- ==================== 1. 上部ヘッダー（実験パターン＆画面表示モード切替） ==================== -->
+    <header class="bg-slate-800/95 border border-slate-700 rounded-2xl px-3 py-2 shadow-lg flex flex-wrap items-center justify-between gap-2">
+        <!-- 左：実験パターン切り替え（双方向対応） -->
+        <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-700">
+            <button id="modeHclBase" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all bg-indigo-600 text-white shadow">
+                ① 塩酸 に NaOH を加える
+            </button>
+            <button id="modeNaohBase" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all text-slate-300 hover:text-white">
+                ② NaOH に 塩酸 を加える
+            </button>
+        </div>
+
+        <!-- 中央：イオンの色とサイズ凡例（真円・わずかなサイズ差） -->
+        <div class="hidden xl:flex items-center gap-3 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-bold">
+            <span class="flex items-center gap-1.5"><span class="inline-block w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-white"></span>H<sup>+</sup>(やや小)</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-5 h-5 rounded-full bg-emerald-500 border-2 border-white"></span>Cl<sup>-</sup>(やや大)</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded-full bg-orange-500 border-2 border-white"></span>Na<sup>+</sup>(中)</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded-full bg-blue-600 border-2 border-white"></span>OH<sup>-</sup>(中)</span>
+            <span class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded-full bg-sky-300 border-2 border-white"></span>H<sub>2</sub>O(水)</span>
+        </div>
+
+        <!-- 右：画面表示レイアウト切替ボタン（100%ビーカー / 60:40連動 / 全グラフ一気見） -->
+        <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-700">
+            <button id="viewBtnBeaker100" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all bg-amber-500 text-slate-950 shadow">
+                🔍 ビーカー100%
+            </button>
+            <button id="viewBtnSplit" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all text-slate-300 hover:text-white">
+                ⚗️＋📊 連動(60:40)
+            </button>
+            <button id="viewBtnAllGraphs" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all text-slate-300 hover:text-white">
+                📊 全グラフ一覧
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== 2. メインエリア（ビーカー領域 ＆ グラフ領域） ==================== -->
+    <main class="flex-1 grid grid-cols-12 gap-3 items-stretch min-h-[480px]">
+
+        <!-- ▼ 左側：ビーカーアニメーション領域（100%時は col-span-12、連動時は col-span-7） ▼ -->
+        <section id="beakerSection" class="col-span-12 bg-white text-slate-900 rounded-2xl shadow-xl border-2 border-slate-300 p-3 flex flex-col justify-between relative overflow-hidden">
+
+            <!-- ビーカー上部：現在の段階・液性バッジ・BTB色トグル -->
+            <div class="w-full flex flex-wrap items-center justify-between gap-2 z-10 px-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <!-- 現在のステップ（①〜④） -->
+                    <div id="stepBadge" class="bg-slate-900 text-white px-3.5 py-1.5 rounded-xl text-base md:text-lg font-black shadow">
+                        段階 ①（最初）
+                    </div>
+                    <!-- 液性とBTB色の説明吹き出し（スライド準拠） -->
+                    <div id="acidityBadge" class="bg-yellow-300 border-2 border-yellow-600 text-yellow-950 px-4 py-1.5 rounded-xl text-sm md:text-lg font-black shadow-sm transition-colors duration-300">
+                        H<sup>+</sup>がある → 酸性（BTB液：黄色）
+                    </div>
+                    <!-- 希釈（水追加）ステータス -->
+                    <div id="waterDiluteBadge" class="hidden bg-sky-100 border-2 border-sky-500 text-sky-900 px-3 py-1 rounded-xl text-xs md:text-sm font-black">
+                        💧 水を追加中（体積増加・イオンの数は不変！）
+                    </div>
+                </div>
+
+                <!-- BTB液の背景色 ON/OFF ボタン -->
+                <button id="btnToggleBTB" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-xl text-xs md:text-sm font-bold transition">
+                    🎨 BTB液の色：ON
+                </button>
+            </div>
+
+            <!-- キャンバス本体 -->
+            <div class="w-full flex-1 flex items-center justify-center my-1 min-h-[360px] md:min-h-[420px] relative">
+                <canvas id="beakerCanvas" class="w-full h-full max-h-[490px] block"></canvas>
+            </div>
+
+            <!-- ビーカー下部：リアルタイムイオン数カウンター -->
+            <div class="w-full bg-slate-100 border border-slate-300 rounded-xl px-2.5 py-2 grid grid-cols-6 gap-1.5 text-center">
+                <div class="bg-white rounded-lg p-1.5 border-2 border-red-200 flex flex-col items-center justify-center">
+                    <span class="text-slate-600 text-[11px] md:text-xs font-bold">水素イオン <b class="text-red-600">H<sup>+</sup></b></span>
+                    <div><span id="countH" class="text-lg md:text-2xl font-black text-red-600">2</span><span class="text-xs font-bold ml-0.5">個</span></div>
+                </div>
+                <div class="bg-white rounded-lg p-1.5 border-2 border-emerald-200 flex flex-col items-center justify-center">
+                    <span class="text-slate-600 text-[11px] md:text-xs font-bold">塩化物イオン <b class="text-emerald-600">Cl<sup>-</sup></b></span>
+                    <div><span id="countCl" class="text-lg md:text-2xl font-black text-emerald-600">2</span><span class="text-xs font-bold ml-0.5">個</span></div>
+                </div>
+                <div class="bg-white rounded-lg p-1.5 border-2 border-orange-200 flex flex-col items-center justify-center">
+                    <span class="text-slate-600 text-[11px] md:text-xs font-bold">ナトリウム <b class="text-orange-500">Na<sup>+</sup></b></span>
+                    <div><span id="countNa" class="text-lg md:text-2xl font-black text-orange-500">0</span><span class="text-xs font-bold ml-0.5">個</span></div>
+                </div>
+                <div class="bg-white rounded-lg p-1.5 border-2 border-blue-200 flex flex-col items-center justify-center">
+                    <span class="text-slate-600 text-[11px] md:text-xs font-bold">水酸化物 <b class="text-blue-600">OH<sup>-</sup></b></span>
+                    <div><span id="countOH" class="text-lg md:text-2xl font-black text-blue-600">0</span><span class="text-xs font-bold ml-0.5">個</span></div>
+                </div>
+                <div class="bg-white rounded-lg p-1.5 border-2 border-purple-200 flex flex-col items-center justify-center">
+                    <span class="text-slate-600 text-[11px] md:text-xs font-bold">イオンの<b class="text-purple-700">総数</b></span>
+                    <div><span id="countTotal" class="text-lg md:text-2xl font-black text-purple-700">4</span><span class="text-xs font-bold ml-0.5">個</span></div>
+                </div>
+                <div class="bg-white rounded-lg p-1.5 border-2 border-sky-200 flex flex-col items-center justify-center">
+                    <span class="text-slate-600 text-[11px] md:text-xs font-bold">できた水 <b class="text-sky-600">H<sub>2</sub>O</b></span>
+                    <div><span id="countWater" class="text-lg md:text-2xl font-black text-sky-600">0</span><span class="text-xs font-bold ml-0.5">個</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ▼ 右側：グラフ領域（連動表示時は col-span-5 で特大1グラフ、全グラフ一覧時は col-span-12） ▼ -->
+        <section id="graphSection" class="hidden col-span-12 lg:col-span-5 bg-slate-800 border-2 border-slate-600 rounded-2xl shadow-xl p-3 flex-col justify-between gap-2.5">
+
+            <!-- グラフ上部コントロール（予想マーカー案内 ＆ 線の表示切替） -->
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-700">
+                <div class="flex items-center gap-2 text-xs md:text-sm font-bold text-amber-300">
+                    <span>💡 グラフの交点をタップすると「？」で次の一滴を予想できます</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button id="btnToggleGraphLine" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg text-xs font-black transition">
+                        📈 実線を表示中
+                    </button>
+                    <button id="btnClearPredictions" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                        ？予想を消す
+                    </button>
+                </div>
+            </div>
+
+            <!-- 【A】60:40連動モード用：特大グラフ1つ＋切り替えタブ -->
+            <div id="singleGraphView" class="flex-1 flex flex-col justify-between gap-2">
+                <!-- 6種類のグラフ切り替えタブ -->
+                <div class="grid grid-cols-6 gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700" id="graphTabContainer">
+                    <button data-graph="H" class="graph-tab-btn bg-red-600 text-white py-1.5 rounded-lg text-xs md:text-sm font-black">H<sup>+</sup></button>
+                    <button data-graph="Cl" class="graph-tab-btn text-slate-300 hover:text-white py-1.5 rounded-lg text-xs md:text-sm font-black">Cl<sup>-</sup></button>
+                    <button data-graph="Na" class="graph-tab-btn text-slate-300 hover:text-white py-1.5 rounded-lg text-xs md:text-sm font-black">Na<sup>+</sup></button>
+                    <button data-graph="OH" class="graph-tab-btn text-slate-300 hover:text-white py-1.5 rounded-lg text-xs md:text-sm font-black">OH<sup>-</sup></button>
+                    <button data-graph="Total" class="graph-tab-btn text-slate-300 hover:text-white py-1.5 rounded-lg text-xs md:text-sm font-black">総数</button>
+                    <button data-graph="All" class="graph-tab-btn text-slate-300 hover:text-white py-1.5 rounded-lg text-xs md:text-sm font-black">重ねる</button>
+                </div>
+
+                <!-- 特大SVGグラフコンテナ -->
+                <div id="largeGraphContainer" class="flex-1 bg-[#13233f] border-2 border-slate-500 rounded-xl p-2 flex items-center justify-center min-h-[340px]">
+                    <!-- JSで特大SVGグラフを描画 -->
+                </div>
+            </div>
+
+            <!-- 【B】全グラフ一気見モード用：スライド完全準拠の5グラフ＋穴埋めまとめカード -->
+            <div id="allGraphsView" class="hidden flex-1 flex-col justify-between gap-3">
+                <!-- 上段：4つの個別イオングラフ（H+, Cl-, Na+, OH-） -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5" id="topFourGraphsContainer">
+                    <!-- JSで4つのSVGグラフを生成 -->
+                </div>
+
+                <!-- 下段：イオンの総数グラフ ＋ スライドの穴埋め問題3問（タップで正解表示） -->
+                <div class="grid grid-cols-12 gap-3 items-stretch">
+                    <div class="col-span-12 lg:col-span-4" id="bottomTotalGraphContainer">
+                        <!-- JSで総数SVGグラフを生成 -->
+                    </div>
+
+                    <!-- スライド右下の「濃度・体積・水追加」穴埋め確認パネル -->
+                    <div class="col-span-12 lg:col-span-8 bg-[#13233f] border-2 border-slate-500 rounded-xl p-3 flex flex-col justify-around gap-2">
+                        <div class="flex items-center justify-between border-b border-slate-600 pb-1">
+                            <span class="text-xs md:text-sm font-black text-sky-300">📌 濃度・体積を変えたときのイオンの数（黄色い枠をタップして確認）</span>
+                            <button id="btnResetBlanks" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-0.5 rounded font-bold">すべて隠す</button>
+                        </div>
+
+                        <div class="flex items-center flex-wrap gap-1 text-sm md:text-lg font-bold">
+                            <span>※同じ体積で2倍の濃度にする → イオンの数が</span>
+                            <button data-blank="1" class="quiz-blank-btn min-w-[64px] h-9 px-3 bg-slate-900 border-2 border-yellow-400 rounded-lg text-yellow-300 font-black text-center transition hover:bg-slate-800">？</button>
+                            <span>倍になる。</span>
+                        </div>
+
+                        <div class="flex items-center flex-wrap gap-1 text-sm md:text-lg font-bold">
+                            <span>※同じ濃さで体積を2倍にする → イオンの数が</span>
+                            <button data-blank="2" class="quiz-blank-btn min-w-[64px] h-9 px-3 bg-slate-900 border-2 border-yellow-400 rounded-lg text-yellow-300 font-black text-center transition hover:bg-slate-800">？</button>
+                            <span>倍になる。</span>
+                        </div>
+
+                        <div class="flex items-center flex-wrap gap-1 text-sm md:text-lg font-bold">
+                            <span>※水を加えて体積を2倍にする → イオンの数は</span>
+                            <button data-blank="3" class="quiz-blank-btn min-w-[160px] h-9 px-4 bg-slate-900 border-2 border-yellow-400 rounded-lg text-yellow-300 font-black text-center transition hover:bg-slate-800">？</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ==================== 3. 下部固定操作パネル（常時操作可能） ==================== -->
+    <footer class="bg-slate-800/95 border border-slate-700 rounded-2xl px-3 py-2.5 shadow-lg flex flex-wrap items-center justify-between gap-2">
+        <!-- 左：現在の進捗ステップインジケーター（①〜④） -->
+        <div class="flex items-center gap-1.5">
+            <span class="text-xs font-bold text-slate-400 mr-1 hidden sm:inline">現在の段階:</span>
+            <div id="footerStepIndicators" class="flex items-center gap-1.5">
+                <!-- JSで ① ② ③ ④ バッジを描画 -->
+            </div>
+        </div>
+
+        <!-- 中央〜右：4つのメイン操作ボタン -->
+        <div class="flex flex-wrap items-center gap-2 md:gap-3 flex-1 justify-end">
+            <button id="btnAddDrop" class="action-btn bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 px-5 rounded-xl text-sm md:text-base border-2 border-rose-400 flex items-center gap-1.5">
+                <span>💧</span>
+                <span id="btnAddDropLabel">NaOH を1滴加える（②へ）</span>
+            </button>
+
+            <button id="btnAddWater" class="action-btn bg-sky-500 hover:bg-sky-400 text-slate-950 font-black py-2.5 px-4 rounded-xl text-sm md:text-base border-2 border-sky-300 flex items-center gap-1">
+                <span>🚰 水だけを追加（薄める）</span>
+            </button>
+
+            <button id="btnUndo" class="action-btn bg-slate-600 hover:bg-slate-500 text-white font-black py-2.5 px-4 rounded-xl text-sm md:text-base border-2 border-slate-400">
+                ↩️ 1滴戻す
+            </button>
+
+            <button id="btnReset" class="action-btn bg-slate-900 hover:bg-slate-700 text-rose-300 font-bold py-2.5 px-3.5 rounded-xl text-xs md:text-sm border border-rose-500/50">
+                🔄 最初(①)に戻す
+            </button>
+        </div>
+    </footer>
+
+    <!-- ==================== JavaScript ロジック ==================== -->
+    <script>
+        /**
+         * イオンの外観定義
+         * ・すべて教科書通りの「真円」
+         * ・H+(赤・やや小)、Cl-(緑・やや大)、Na+(オレンジ・中)、OH-(青・中)、H2O(水色・中)
+         */
+        const ION_SPECS = {
+            H: {
+                key: 'H',
+                symbol: 'H',
+                charge: '+',
+                title: '＜H⁺の数の変化＞',
+                radius: 22, // やや小
+                colorTop: '#ff6b6b',
+                colorBottom: '#dc2626',
+                strokeColor: '#ef4444'
+            },
+            Cl: {
+                key: 'Cl',
+                symbol: 'Cl',
+                charge: '-',
+                title: '＜Cl⁻の数の変化＞',
+                radius: 28, // やや大
+                colorTop: '#34d399',
+                colorBottom: '#059669',
+                strokeColor: '#10b981'
+            },
+            Na: {
+                key: 'Na',
+                symbol: 'Na',
+                charge: '+',
+                title: '＜Na⁺の数の変化＞',
+                radius: 25, // 標準
+                colorTop: '#fb923c',
+                colorBottom: '#ea580c',
+                strokeColor: '#f97316'
+            },
+            OH: {
+                key: 'OH',
+                symbol: 'OH',
+                charge: '-',
+                title: '＜OH⁻の数の変化＞',
+                radius: 25, // 標準
+                colorTop: '#60a5fa',
+                colorBottom: '#2563eb',
+                strokeColor: '#3b82f6'
+            },
+            H2O: {
+                key: 'H2O',
+                symbol: 'H₂O',
+                charge: '',
+                title: '水分子',
+                radius: 25,
+                colorTop: '#bae6fd',
+                colorBottom: '#0284c7',
+                strokeColor: '#38bdf8'
+            },
+            Total: {
+                key: 'Total',
+                symbol: '総数',
+                charge: '',
+                title: '＜イオンの総数の変化＞',
+                radius: 25,
+                colorTop: '#c084fc',
+                colorBottom: '#7e22ce',
+                strokeColor: '#a855f7'
+            }
+        };
+
+        const STEP_LABELS = ['①', '②', '③', '④'];
+        const MAX_DROP_STEPS = 3; // ①(0滴) -> ②(1滴) -> ③(2滴) -> ④(3滴)
+
+        // アプリ全体の状態管理
+        const state = {
+            baseMode: 'hcl',          // 'hcl' (塩酸にNaOHを加える) | 'naoh' (NaOHに塩酸を加える)
+            viewMode: 'beaker100',    // 'beaker100' | 'split' | 'allGraphs'
+            selectedGraphTab: 'H',    // 'H' | 'Cl' | 'Na' | 'OH' | 'Total' | 'All'
+            dropStep: 0,              // 0(①), 1(②), 2(③), 3(④)
+            waterDiluteCount: 0,      // 水だけを追加した回数 (0〜2)
+            history: [],              // Undo用の操作履歴 ('drop' | 'water')
+            showBTB: true,            // BTB液の色表示ON/OFF
+            showGraphLine: true,      // グラフの実線表示ON/OFF
+            isAnimatingDrop: false,   // 滴下〜中和アニメーション進行中フラグ
+            predictions: {            // 各グラフの予想マーカー { 'H': { 1: 1, 2: 0 }, ... }
+                H: {}, Cl: {}, Na: {}, OH: {}, Total: {}, All: {}
+            },
+            quizRevealed: { 1: false, 2: false, 3: false }
+        };
+
+        // キャンバス描画オブジェクト
+        const canvas = document.getElementById('beakerCanvas');
+        const ctx = canvas.getContext('2d');
+        let beakerRect = { x: 0, y: 0, w: 0, h: 0, waterTop: 0 };
+
+        let swimmingParticles = []; // 水中を泳ぐイオンと水分子
+        let droppingCapsule = null; // 滴下中のカプセルアニメーション
+        let rippleEffects = [];     // 波紋やテキストエフェクト
+
+        /**
+         * 指定した段階 (stepIndex: 0〜3) における各イオンの数と水分子の数を返す
+         */
+        function getStepCounts(stepIndex) {
+            if (state.baseMode === 'hcl') {
+                // 塩酸(H+ 2個, Cl- 2個) に NaOH を stepIndex 回加える
+                const H = Math.max(0, 2 - stepIndex);
+                const Cl = 2;
+                const Na = stepIndex;
+                const OH = Math.max(0, stepIndex - 2);
+                const H2O = Math.min(2, stepIndex);
+                const Total = H + Cl + Na + OH;
+                return { H, Cl, Na, OH, Total, H2O };
+            } else {
+                // 水酸化ナトリウム(Na+ 2個, OH- 2個) に 塩酸 を stepIndex 回加える
+                const OH = Math.max(0, 2 - stepIndex);
+                const Na = 2;
+                const Cl = stepIndex;
+                const H = Math.max(0, stepIndex - 2);
+                const H2O = Math.min(2, stepIndex);
+                const Total = H + Cl + Na + OH;
+                return { H, Cl, Na, OH, Total, H2O };
+            }
+        }
+
+        /**
+         * 現在の段階に合わせてビーカー内の粒子を即座に再構築（初期化・Undo・リセット時）
+         */
+        function rebuildBeakerParticles() {
+            swimmingParticles = [];
+            droppingCapsule = null;
+            rippleEffects = [];
+            state.isAnimatingDrop = false;
+
+            const counts = getStepCounts(state.dropStep);
+            const typesToSpawn = [
+                { type: 'H', count: counts.H },
+                { type: 'Cl', count: counts.Cl },
+                { type: 'Na', count: counts.Na },
+                { type: 'OH', count: counts.OH },
+                { type: 'H2O', count: counts.H2O }
+            ];
+
+            typesToSpawn.forEach(group => {
+                for (let i = 0; i < group.count; i++) {
+                    spawnParticleInWater(group.type);
+                }
+            });
+        }
+
+        /**
+         * 水中のランダムな位置に粒子を1個配置
+         */
+        function spawnParticleInWater(type, customX = null, customY = null) {
+            const spec = ION_SPECS[type];
+            const pad = spec.radius + 16;
+            const minX = beakerRect.x + pad;
+            const maxX = Math.max(minX + 10, beakerRect.x + beakerRect.w - pad);
+            const minY = beakerRect.waterTop + pad + 10;
+            const maxY = Math.max(minY + 10, beakerRect.y + beakerRect.h - pad);
+
+            const x = customX !== null ? customX : minX + Math.random() * (maxX - minX);
+            const y = customY !== null ? customY : minY + Math.random() * (maxY - minY);
+            const angle = Math.random() * Math.PI * 2;
+            // 生徒が目で追いやすいよう、通常の遊泳速度を約0.6倍速（0.6〜0.85px/frame）に設定
+            const speed = 0.6 + Math.random() * 0.25;
+
+            const particle = {
+                type,
+                spec,
+                x,
+                y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                scale: 1,
+                state: 'free', // 'free' | 'pre_attract' | 'attracting' | 'bonding' | 'merged'
+                waitTimer: 0,
+                bondTimer: 0,
+                partner: null
+            };
+            swimmingParticles.push(particle);
+            return particle;
+        }
+
+        /**
+         * 「＋ 1滴加える」を実行（滴下 → 電離 → H+とOH-の引き寄せ → 中和アニメーション）
+         */
+        function triggerAddDrop() {
+            if (state.isAnimatingDrop || state.dropStep >= MAX_DROP_STEPS) return;
+
+            state.isAnimatingDrop = true;
+            const isHclBase = state.baseMode === 'hcl';
+            const topType = isHclBase ? 'Na' : 'H';
+            const bottomType = isHclBase ? 'OH' : 'Cl';
+
+            droppingCapsule = {
+                x: beakerRect.x + beakerRect.w * 0.5,
+                y: Math.max(46, beakerRect.y - 36),
+                vy: 2.0, // 滴下速度も落ち着いた速さに調整
+                targetY: beakerRect.waterTop + (beakerRect.y + beakerRect.h - beakerRect.waterTop) * 0.34,
+                topSpec: ION_SPECS[topType],
+                bottomSpec: ION_SPECS[bottomType],
+                enteredWater: false
+            };
+
+            updateUI();
+        }
+
+        /**
+         * カプセルが水中に到達して電離し、中和ペアがあれば引き寄せを開始する
+         */
+        function completeCapsuleDissociation(cap) {
+            const p1 = spawnParticleInWater(cap.topSpec.key, cap.x - 26, cap.y);
+            const p2 = spawnParticleInWater(cap.bottomSpec.key, cap.x + 26, cap.y);
+            // 電離した直後に左右へゆっくり分かれる動きをつける
+            p1.vx = -0.65;
+            p1.vy = -0.2;
+            p2.vx = 0.65;
+            p2.vy = 0.2;
+            p1.scale = 1.25;
+            p2.scale = 1.25;
+
+            rippleEffects.push({
+                x: cap.x,
+                y: cap.y,
+                r: 12,
+                alpha: 1.0,
+                color: '#facc15',
+                label: '水中で電離！'
+            });
+
+            // 水中に逆の反応イオン（H+ に対して OH-、または OH- に対して H+）があるか探す
+            const incomingReactive = p1.type === 'H' ? p1 : (p2.type === 'OH' ? p2 : null);
+            const targetOppositeType = incomingReactive.type === 'H' ? 'OH' : 'H';
+            const targetIon = swimmingParticles.find(p => p.type === targetOppositeType && p.state === 'free');
+
+            if (incomingReactive && targetIon) {
+                // まず電離した様子を約0.8秒見せてから、ゆっくり引き寄せ合うフェーズへ移行
+                incomingReactive.state = 'pre_attract';
+                targetIon.state = 'pre_attract';
+                incomingReactive.waitTimer = 48;
+                targetIon.waitTimer = 48;
+                incomingReactive.partner = targetIon;
+                targetIon.partner = incomingReactive;
+            } else {
+                // すでに中性（③）を超えてアルカリ性/酸性側へ増える段階（③→④）
+                finalizeDropStep();
+            }
+        }
+
+        /**
+         * 1滴分の反応が完了し、ステップ数とグラフを更新する
+         */
+        function finalizeDropStep() {
+            state.dropStep = Math.min(MAX_DROP_STEPS, state.dropStep + 1);
+            state.history.push('drop');
+            state.isAnimatingDrop = false;
+            updateUI();
+        }
+
+        /**
+         * 「🚰 水だけを追加（薄める）」を実行
+         */
+        function triggerAddWater() {
+            if (state.isAnimatingDrop) return;
+            state.waterDiluteCount = Math.min(2, state.waterDiluteCount + 1);
+            state.history.push('water');
+            updateWaterLevel();
+
+            rippleEffects.push({
+                x: beakerRect.x + beakerRect.w * 0.5,
+                y: beakerRect.waterTop + 25,
+                r: 16,
+                alpha: 1.0,
+                color: '#38bdf8',
+                label: '水を追加！イオンの数は変わりません'
+            });
+
+            updateUI();
+        }
+
+        /**
+         * 「↩️ 1滴戻す（Undo）」を実行
+         */
+        function triggerUndo() {
+            if (state.history.length === 0) return;
+            const lastAction = state.history.pop();
+            if (lastAction === 'drop') {
+                state.dropStep = Math.max(0, state.dropStep - 1);
+            } else if (lastAction === 'water') {
+                state.waterDiluteCount = Math.max(0, state.waterDiluteCount - 1);
+            }
+            updateWaterLevel();
+            rebuildBeakerParticles();
+            updateUI();
+        }
+
+        /**
+         * 水位（水だけを追加した回数に応じて上昇）を計算
+         */
+        function updateWaterLevel() {
+            // 通常時はビーカー高さの62%、水追加1回で74%、2回で85%まで水位が上がる
+            const waterRatio = 0.62 + state.waterDiluteCount * 0.115;
+            beakerRect.waterTop = beakerRect.y + beakerRect.h * (1 - waterRatio);
+        }
+
+        /**
+         * キャンバスのリサイズ処理（画面モード切替時やiPad回転時に自動調整）
+         */
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            if (!parent) return;
+            const rect = parent.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            const w = rect.width;
+            const h = rect.height;
+
+            const bw = Math.min(w * 0.86, 620);
+            const bh = Math.min(h * 0.72, 340);
+            const bx = (w - bw) / 2;
+            const by = h - bh - 14;
+
+            beakerRect.x = bx;
+            beakerRect.y = by;
+            beakerRect.w = bw;
+            beakerRect.h = bh;
+            updateWaterLevel();
+        }
+
+        /**
+         * イオン球体（真円）の描画
+         */
+        function drawIonCircle(x, y, spec, scale = 1) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            const r = spec.radius;
+
+            // 球体のグラデーション塗り
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r);
+            grad.addColorStop(0, spec.colorTop);
+            grad.addColorStop(1, spec.colorBottom);
+            ctx.fillStyle = grad;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
+            ctx.shadowBlur = 5;
+            ctx.fill();
+
+            // 白い縁取りでどの背景色でもくっきり見せる
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            // 化学式テキスト
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+            ctx.shadowBlur = 2;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const fontSize = spec.key === 'H2O' ? 15 : Math.round(r * 0.76);
+            ctx.font = `900 ${fontSize}px "Noto Sans JP", sans-serif`;
+            const offset = spec.charge ? r * 0.14 : 0;
+            ctx.fillText(spec.symbol, -offset, 1);
+
+            // 右上の価数（+ / -）
+            if (spec.charge) {
+                ctx.font = `900 ${Math.round(r * 0.56)}px "Noto Sans JP", sans-serif`;
+                const symW = ctx.measureText(spec.symbol).width;
+                ctx.fillText(spec.charge, symW * 0.52, -r * 0.32);
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * ビーカー上部に表示する「次の一滴カプセル（スライド準拠の点線枠＋赤矢印）」を描画
+         */
+        function drawTopPreviewCapsule(cx, cy, topSpec, bottomSpec, labelText, isPreview = true) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            // 点線カプセル枠
+            ctx.beginPath();
+            ctx.roundRect(-34, -50, 68, 96, 16);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+            ctx.fill();
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#334155';
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 上下のイオンを描画
+            drawIonCircle(0, -24, topSpec, 0.78);
+            drawIonCircle(0, 20, bottomSpec, 0.78);
+
+            if (isPreview) {
+                // 右側の説明ラベル枠（例：水酸化ナトリウム / 塩酸）
+                ctx.beginPath();
+                ctx.roundRect(42, -22, 118, 38, 8);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.lineWidth = 1.8;
+                ctx.strokeStyle = '#64748b';
+                ctx.stroke();
+
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '900 12px "Noto Sans JP", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labelText, 101, -3);
+
+                // 下向きの赤い矢印
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.moveTo(-10, 50);
+                ctx.lineTo(10, 50);
+                ctx.lineTo(10, 62);
+                ctx.lineTo(18, 62);
+                ctx.lineTo(0, 76);
+                ctx.lineTo(-18, 62);
+                ctx.lineTo(-10, 62);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * 水溶液の背景色（BTB液の色）を取得
+         */
+        function getWaterGradientColors() {
+            if (!state.showBTB) {
+                return { top: '#e0f2fe', bottom: '#bae6fd', surface: '#ceecfe' };
+            }
+            const counts = getStepCounts(state.dropStep);
+            if (counts.H > counts.OH) {
+                // 酸性：黄色
+                return { top: '#fef08a', bottom: '#fde047', surface: '#fef9c3' };
+            } else if (counts.OH > counts.H) {
+                // アルカリ性：青色
+                return { top: '#93c5fd', bottom: '#60a5fa', surface: '#bfdbfe' };
+            } else {
+                // 中性：緑色
+                return { top: '#bbf7d0', bottom: '#4ade80', surface: '#dcfce7' };
+            }
+        }
+
+        /**
+         * ビーカーのメインアニメーションループ
+         */
+        function animateBeaker() {
+            if (state.viewMode !== 'allGraphs') {
+                const parent = canvas.parentElement;
+                const w = parent ? parent.clientWidth : 0;
+                const h = parent ? parent.clientHeight : 0;
+                ctx.clearRect(0, 0, w, h);
+
+                const { x: bx, y: by, w: bw, h: bh, waterTop } = beakerRect;
+                const waterH = (by + bh) - waterTop;
+                const colors = getWaterGradientColors();
+
+                // 1. 水溶液の背景塗りつぶし
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(bx + 3, waterTop, bw - 6, waterH - 3, [0, 0, 24, 24]);
+                const grad = ctx.createLinearGradient(0, waterTop, 0, by + bh);
+                grad.addColorStop(0, colors.top);
+                grad.addColorStop(1, colors.bottom);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.restore();
+
+                // 水面ライン
+                ctx.beginPath();
+                ctx.moveTo(bx + 3, waterTop);
+                ctx.lineTo(bx + bw - 3, waterTop);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(100, 116, 139, 0.45)';
+                ctx.stroke();
+
+                // 2. ビーカー上部の「次の一滴プレビュー」または「落下中カプセル」の描画
+                const isHclBase = state.baseMode === 'hcl';
+                const previewTopSpec = isHclBase ? ION_SPECS.Na : ION_SPECS.H;
+                const previewBottomSpec = isHclBase ? ION_SPECS.OH : ION_SPECS.Cl;
+                const previewLabel = isHclBase ? '水酸化ナトリウム' : 'うすい塩酸';
+
+                if (droppingCapsule) {
+                    droppingCapsule.y += droppingCapsule.vy;
+                    droppingCapsule.vy += 0.08;
+
+                    if (!droppingCapsule.enteredWater && droppingCapsule.y >= waterTop) {
+                        droppingCapsule.enteredWater = true;
+                        droppingCapsule.vy *= 0.55;
+                        rippleEffects.push({
+                            x: droppingCapsule.x,
+                            y: waterTop,
+                            r: 10,
+                            alpha: 0.9,
+                            color: '#ffffff',
+                            label: ''
+                        });
+                    }
+
+                    drawTopPreviewCapsule(
+                        droppingCapsule.x,
+                        droppingCapsule.y,
+                        droppingCapsule.topSpec,
+                        droppingCapsule.bottomSpec,
+                        previewLabel,
+                        false
+                    );
+
+                    if (droppingCapsule.y >= droppingCapsule.targetY) {
+                        const cap = droppingCapsule;
+                        droppingCapsule = null;
+                        completeCapsuleDissociation(cap);
+                    }
+                } else if (state.dropStep < MAX_DROP_STEPS && !state.isAnimatingDrop) {
+                    // まだ滴下できる段階（①〜③）ならビーカー上部に点線カプセルを表示
+                    const capX = bx + bw * 0.5;
+                    const capY = Math.max(52, by - 32);
+                    drawTopPreviewCapsule(capX, capY, previewTopSpec, previewBottomSpec, previewLabel, true);
+                }
+
+                // 3. 引き寄せ合っている H+ と OH- の破線ガイド・注目エフェクト描画
+                const drawnAttract = new Set();
+                swimmingParticles.forEach(p => {
+                    if ((p.state === 'pre_attract' || p.state === 'attracting' || p.state === 'bonding') && p.partner && !drawnAttract.has(p)) {
+                        drawnAttract.add(p);
+                        drawnAttract.add(p.partner);
+
+                        const p2 = p.partner;
+                        const mx = (p.x + p2.x) / 2;
+                        const my = (p.y + p2.y) / 2;
+
+                        ctx.save();
+
+                        if (p.state === 'pre_attract') {
+                            // フェーズ1: 電離直後に反応するペアをハイライトリングで予告
+                            [p, p2].forEach(ion => {
+                                ctx.beginPath();
+                                ctx.arc(ion.x, ion.y, ion.spec.radius + 9, 0, Math.PI * 2);
+                                ctx.lineWidth = 3;
+                                ctx.strokeStyle = 'rgba(2, 132, 199, 0.65)';
+                                ctx.stroke();
+                            });
+                            ctx.beginPath();
+                            ctx.setLineDash([4, 6]);
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.lineWidth = 2.5;
+                            ctx.strokeStyle = 'rgba(2, 132, 199, 0.5)';
+                            ctx.stroke();
+                        } else if (p.state === 'attracting') {
+                            // フェーズ2: ゆっくり惹かれ合う破線とハイライトリング
+                            [p, p2].forEach(ion => {
+                                ctx.beginPath();
+                                ctx.arc(ion.x, ion.y, ion.spec.radius + 8, 0, Math.PI * 2);
+                                ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+                                ctx.fill();
+                                ctx.lineWidth = 3;
+                                ctx.strokeStyle = '#0284c7';
+                                ctx.stroke();
+                            });
+
+                            ctx.beginPath();
+                            ctx.setLineDash([7, 5]);
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.lineWidth = 4;
+                            ctx.strokeStyle = '#0284c7';
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+
+                            // テキスト背景ピル＋ラベル
+                            const msg = '⚡ H⁺ と OH⁻ がひかれあう！';
+                            ctx.font = '900 13px "Noto Sans JP", sans-serif';
+                            const tw = ctx.measureText(msg).width;
+                            ctx.beginPath();
+                            ctx.roundRect(mx - tw / 2 - 10, my - 32, tw + 20, 24, 12);
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                            ctx.fill();
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#0284c7';
+                            ctx.stroke();
+
+                            ctx.fillStyle = '#0369a1';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(msg, mx, my - 20);
+                        } else if (p.state === 'bonding') {
+                            // フェーズ3: 2つがピタッと触れ合って水分子に変わる直前の発光エフェクト
+                            ctx.beginPath();
+                            ctx.arc(mx, my, 42, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(56, 189, 248, 0.38)';
+                            ctx.fill();
+                            ctx.lineWidth = 4;
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.stroke();
+
+                            const msg = '💧 結びついて 水(H₂O) になる！';
+                            ctx.font = '900 14px "Noto Sans JP", sans-serif';
+                            const tw = ctx.measureText(msg).width;
+                            ctx.beginPath();
+                            ctx.roundRect(mx - tw / 2 - 10, my - 56, tw + 20, 26, 13);
+                            ctx.fillStyle = '#0284c7';
+                            ctx.fill();
+
+                            ctx.fillStyle = '#ffffff';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(msg, mx, my - 43);
+                        }
+
+                        ctx.restore();
+                    }
+                });
+
+                // 4. 水中を泳ぐイオンと水分子の更新・描画
+                const minX = bx + 34;
+                const maxX = bx + bw - 34;
+                const minY = waterTop + 32;
+                const maxY = by + bh - 34;
+
+                for (let i = 0; i < swimmingParticles.length; i++) {
+                    const p = swimmingParticles[i];
+                    if (p.state === 'merged') continue;
+
+                    if (p.scale > 1) {
+                        p.scale = Math.max(1, p.scale - 0.015);
+                    }
+
+                    if (p.state === 'pre_attract' && p.partner) {
+                        // 電離直後の観察ポーズ（ゆっくり漂いながら待機）
+                        p.vx *= 0.96;
+                        p.vy *= 0.96;
+                        p.waitTimer--;
+                        if (p.waitTimer <= 0) {
+                            p.state = 'attracting';
+                        }
+                    } else if (p.state === 'attracting' && p.partner) {
+                        const dx = p.partner.x - p.x;
+                        const dy = p.partner.y - p.y;
+                        const dist = Math.hypot(dx, dy);
+
+                        if (dist <= 34) {
+                            // H+ と OH- が触れ合ったら、すぐに消さず「結合ホールド状態」へ移行
+                            p.state = 'bonding';
+                            p.partner.state = 'bonding';
+                            p.bondTimer = 42; // 約0.7秒間、2つがくっついた状態を見せる
+                            p.partner.bondTimer = 42;
+                            p.vx = 0;
+                            p.vy = 0;
+                            p.partner.vx = 0;
+                            p.partner.vy = 0;
+                        } else {
+                            // 生徒が目でしっかり追えるよう、ゆっくりお互いに向かって移動（0.75px/frame）
+                            const attractSpeed = 0.75;
+                            p.vx = (dx / dist) * attractSpeed;
+                            p.vy = (dy / dist) * attractSpeed;
+                        }
+                    } else if (p.state === 'bonding' && p.partner) {
+                        // 触れ合った2つのイオンが中心へ少しずつ重なりながら発光
+                        const dx = p.partner.x - p.x;
+                        const dy = p.partner.y - p.y;
+                        p.x += dx * 0.04;
+                        p.y += dy * 0.04;
+                        p.bondTimer--;
+
+                        if (p.bondTimer <= 0) {
+                            const midX = (p.x + p.partner.x) / 2;
+                            const midY = (p.y + p.partner.y) / 2;
+                            p.state = 'merged';
+                            p.partner.state = 'merged';
+
+                            const waterMol = spawnParticleInWater('H2O', midX, midY);
+                            waterMol.scale = 1.4;
+
+                            rippleEffects.push({
+                                x: midX,
+                                y: midY,
+                                r: 14,
+                                alpha: 1.0,
+                                color: '#0284c7',
+                                label: '水(H₂O)ができた！'
+                            });
+
+                            finalizeDropStep();
+                            continue;
+                        }
+                    } else {
+                        // 粒子同士の重なり防止（緩やかな反発）
+                        for (let j = i + 1; j < swimmingParticles.length; j++) {
+                            const p2 = swimmingParticles[j];
+                            if (p2.state !== 'free') continue;
+                            const dx = p2.x - p.x;
+                            const dy = p2.y - p.y;
+                            const dist = Math.hypot(dx, dy);
+                            const minDist = p.spec.radius + p2.spec.radius + 6;
+                            if (dist > 0 && dist < minDist) {
+                                const push = (minDist - dist) * 0.02;
+                                const nx = dx / dist;
+                                const ny = dy / dist;
+                                p.vx -= nx * push;
+                                p.vy -= ny * push;
+                                p2.vx += nx * push;
+                                p2.vy += ny * push;
+                            }
+                        }
+
+                        // 遊泳速度が速くなりすぎないよう0.6倍速（約0.65px/frame）前後に保つ
+                        const currentSpeed = Math.hypot(p.vx, p.vy);
+                        const targetSpeed = 0.65;
+                        if (currentSpeed > targetSpeed * 1.35) {
+                            p.vx *= 0.94;
+                            p.vy *= 0.94;
+                        } else if (currentSpeed < targetSpeed * 0.6 && currentSpeed > 0.01) {
+                            p.vx *= 1.04;
+                            p.vy *= 1.04;
+                        }
+                    }
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    // 壁との反射
+                    if (p.x < minX) { p.x = minX; p.vx = Math.abs(p.vx); }
+                    if (p.x > maxX) { p.x = maxX; p.vx = -Math.abs(p.vx); }
+                    if (p.y < minY) { p.y = minY; p.vy = Math.abs(p.vy); }
+                    if (p.y > maxY) { p.y = maxY; p.vy = -Math.abs(p.vy); }
+
+                    drawIonCircle(p.x, p.y, p.spec, p.scale);
+                }
+
+                // 合体済みイオンを配列からクリーンアップ
+                if (swimmingParticles.some(p => p.state === 'merged')) {
+                    swimmingParticles = swimmingParticles.filter(p => p.state !== 'merged');
+                }
+
+                // 5. 波紋＆テキストエフェクトの描画
+                for (let i = rippleEffects.length - 1; i >= 0; i--) {
+                    const ef = rippleEffects[i];
+                    ef.r += 2.0;
+                    ef.alpha -= 0.024;
+                    if (ef.alpha <= 0) {
+                        rippleEffects.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, ef.alpha);
+                    ctx.beginPath();
+                    ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI * 2);
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = ef.color;
+                    ctx.stroke();
+
+                    if (ef.label) {
+                        ctx.font = '900 18px "Noto Sans JP", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 5;
+                        ctx.strokeText(ef.label, ef.x, ef.y - ef.r * 0.5 - 8);
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(ef.label, ef.x, ef.y - ef.r * 0.5 - 8);
+                    }
+                    ctx.restore();
+                }
+
+                // 6. ビーカーのガラス外枠と目盛り
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(bx - 8, by);
+                ctx.lineTo(bx, by + 10);
+                ctx.lineTo(bx, by + bh - 26);
+                ctx.quadraticCurveTo(bx, by + bh, bx + 26, by + bh);
+                ctx.lineTo(bx + bw - 26, by + bh);
+                ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw, by + bh - 26);
+                ctx.lineTo(bx + bw, by + 10);
+                ctx.lineTo(bx + bw + 8, by);
+                ctx.lineWidth = 5.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#334155';
+                ctx.stroke();
+
+                // 目盛り線（1倍・2倍の体積変化が視覚的にわかる目盛り）
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+                ctx.fillStyle = 'rgba(51, 65, 85, 0.65)';
+                ctx.font = '700 12px "Noto Sans JP", sans-serif';
+                ctx.textAlign = 'right';
+                const marks = [
+                    { ratio: 0.62, label: '元の体積(1倍)' },
+                    { ratio: 0.85, label: '体積 2倍' }
+                ];
+                marks.forEach(m => {
+                    const my = by + bh * (1 - m.ratio);
+                    ctx.beginPath();
+                    ctx.moveTo(bx + bw - 32, my);
+                    ctx.lineTo(bx + bw - 10, my);
+                    ctx.stroke();
+                    ctx.fillText(m.label, bx + bw - 36, my + 4);
+                });
+                ctx.restore();
+            }
+
+            requestAnimationFrame(animateBeaker);
+        }
+
+        /**
+         * スライド（image_1b2403.jpg）完全準拠のSVGグラフを生成する関数
+         * ・縦軸: 0〜6（1, 3, 5は破線、2, 4, 6は実線）
+         * ・横軸: ①, ②, ③, ④
+         * ・交点をタップすると予想マーカー「？」を打てる
+         */
+        function createGraphSVG(graphKey, isLarge = false) {
+            const width = isLarge ? 500 : 340;
+            const height = isLarge ? 330 : 225;
+            const padLeft = isLarge ? 68 : 52;
+            const padRight = isLarge ? 28 : 20;
+            const padTop = isLarge ? 44 : 34;
+            const padBottom = isLarge ? 42 : 34;
+
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            const getX = (stepIdx) => padLeft + (stepIdx / 3) * plotW;
+            const getY = (val) => padTop + ((6 - val) / 6) * plotH;
+
+            const titleText = graphKey === 'All'
+                ? '＜全イオン重ね合わせ＞'
+                : ION_SPECS[graphKey].title;
+
+            let svgContent = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-full select-none">
+                    <!-- グラフタイトル枠 -->
+                    <rect x="${width * 0.18}" y="4" width="${width * 0.64}" height="${isLarge ? 28 : 22}" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+                    <text x="${width / 2}" y="${isLarge ? 23 : 19}" fill="#f8fafc" font-size="${isLarge ? 15 : 12}" font-weight="900" text-anchor="middle">${titleText}</text>
+
+                    <!-- プロット外枠 -->
+                    <rect x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="#172b4d" stroke="#cbd5e1" stroke-width="2"/>
+            `;
+
+            // 横罫線（Y = 0〜6）とY軸ラベル（0, 2, 4, 6）
+            for (let yVal = 0; yVal <= 6; yVal++) {
+                const py = getY(yVal);
+                const isOdd = yVal % 2 === 1;
+                if (yVal > 0 && yVal < 6) {
+                    svgContent += `
+                        <line x1="${padLeft}" y1="${py}" x2="${padLeft + plotW}" y2="${py}"
+                              stroke="#cbd5e1" stroke-width="${isOdd ? 1.2 : 1.8}"
+                              ${isOdd ? 'stroke-dasharray="5,5"' : ''} opacity="0.85"/>
+                    `;
+                }
+                if (!isOdd) {
+                    svgContent += `
+                        <text x="${padLeft - 8}" y="${py + 5}" fill="#f8fafc" font-size="${isLarge ? 14 : 11}" font-weight="900" text-anchor="end">${yVal}</text>
+                    `;
+                }
+            }
+
+            // 縦罫線（X = ①, ②, ③, ④）とX軸丸数字ラベル
+            for (let s = 0; s <= 3; s++) {
+                const px = getX(s);
+                if (s > 0 && s < 3) {
+                    svgContent += `
+                        <line x1="${px}" y1="${padTop}" x2="${px}" y2="${padTop + plotH}" stroke="#cbd5e1" stroke-width="1.8" opacity="0.85"/>
+                    `;
+                }
+                // 現在の段階をハイライト表示
+                const isCurrent = s === state.dropStep;
+                svgContent += `
+                    <rect x="${px - (isLarge ? 15 : 12)}" y="${padTop + plotH + 6}" width="${isLarge ? 30 : 24}" height="${isLarge ? 26 : 21}" rx="4"
+                          fill="${isCurrent ? '#facc15' : '#0f172a'}" stroke="${isCurrent ? '#fef08a' : '#64748b'}" stroke-width="1.5"/>
+                    <text x="${px}" y="${padTop + plotH + (isLarge ? 24 : 20)}"
+                          fill="${isCurrent ? '#0f172a' : '#f8fafc'}" font-size="${isLarge ? 15 : 12}" font-weight="900" text-anchor="middle">${STEP_LABELS[s]}</text>
+                `;
+            }
+
+            // Y軸左側の縦書き風タイトルラベル
+            const yAxisLabel = graphKey === 'All' ? 'イオンの数' : (graphKey === 'Total' ? 'イオン総数' : `${ION_SPECS[graphKey].symbol}${ION_SPECS[graphKey].charge}の数`);
+            svgContent += `
+                <text x="${isLarge ? 20 : 15}" y="${padTop + plotH / 2}" fill="#cbd5e1" font-size="${isLarge ? 13 : 10}" font-weight="900" text-anchor="middle"
+                      transform="rotate(-90, ${isLarge ? 20 : 15}, ${padTop + plotH / 2})">${yAxisLabel}</text>
+            `;
+
+            // 実線データの描画（現在の dropStep までの折れ線とドット）
+            if (state.showGraphLine) {
+                const seriesList = graphKey === 'All'
+                    ? ['H', 'Cl', 'Na', 'OH', 'Total']
+                    : [graphKey];
+
+                seriesList.forEach(key => {
+                    const spec = ION_SPECS[key];
+                    const points = [];
+                    for (let s = 0; s <= state.dropStep; s++) {
+                        const c = getStepCounts(s);
+                        // 複数重なる「All」モードでは見分けやすいようごくわずかにY座標をずらす
+                        const offset = graphKey === 'All' ? ({ H: -2, Cl: 2, Na: -1, OH: 1, Total: 0 }[key] || 0) : 0;
+                        points.push({ x: getX(s), y: getY(c[key]) + offset, val: c[key] });
+                    }
+
+                    if (points.length >= 2) {
+                        const pathData = points.map((pt, idx) => `${idx === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
+                        svgContent += `
+                            <path d="${pathData}" fill="none" stroke="${spec.strokeColor}" stroke-width="${isLarge ? 5 : 4}" stroke-linecap="round" stroke-linejoin="round"/>
+                        `;
+                    }
+
+                    points.forEach(pt => {
+                        svgContent += `
+                            <circle cx="${pt.x}" cy="${pt.y}" r="${isLarge ? 7 : 5.5}" fill="${spec.strokeColor}" stroke="#ffffff" stroke-width="2.5"/>
+                        `;
+                    });
+                });
+            }
+
+            // 生徒の予想マーカー（？）の描画
+            const predMap = state.predictions[graphKey] || {};
+            Object.keys(predMap).forEach(sKey => {
+                const sIdx = Number(sKey);
+                const yVal = predMap[sKey];
+                const px = getX(sIdx);
+                const py = getY(yVal);
+                const r = isLarge ? 13 : 10;
+                svgContent += `
+                    <g>
+                        <circle cx="${px}" cy="${py}" r="${r}" fill="#facc15" stroke="#0f172a" stroke-width="2"/>
+                        <text x="${px}" y="${py + (isLarge ? 5 : 4)}" fill="#0f172a" font-size="${isLarge ? 14 : 11}" font-weight="900" text-anchor="middle">？</text>
+                    </g>
+                `;
+            });
+
+            // 交点タップ用の透明ヒットエリア（x: 0〜3, y: 0〜6）
+            for (let s = 0; s <= 3; s++) {
+                for (let yVal = 0; yVal <= 6; yVal++) {
+                    const px = getX(s);
+                    const py = getY(yVal);
+                    const hitR = isLarge ? 16 : 12;
+                    svgContent += `
+                        <circle cx="${px}" cy="${py}" r="${hitR}" fill="transparent"
+                                class="graph-grid-hit"
+                                data-graph="${graphKey}" data-step="${s}" data-val="${yVal}"/>
+                    `;
+                }
+            }
+
+            svgContent += `</svg>`;
+            return svgContent;
+        }
+
+        /**
+         * すべてのグラフコンテナを再描画してタップイベントを登録
+         */
+        function renderAllGraphs() {
+            // 1. 連動モード（60:40）の特大グラフ
+            const largeContainer = document.getElementById('largeGraphContainer');
+            if (largeContainer) {
+                largeContainer.innerHTML = createGraphSVG(state.selectedGraphTab, true);
+            }
+
+            // 2. 全グラフ一覧モードの上段4グラフ（H+, Cl-, Na+, OH-）
+            const topFourContainer = document.getElementById('topFourGraphsContainer');
+            if (topFourContainer) {
+                topFourContainer.innerHTML = ['H', 'Cl', 'Na', 'OH'].map(key => `
+                    <div class="bg-[#13233f] border-2 border-slate-500 rounded-xl p-1.5 flex items-center justify-center">
+                        ${createGraphSVG(key, false)}
+                    </div>
+                `).join('');
+            }
+
+            // 3. 全グラフ一覧モードの下段（イオンの総数）
+            const bottomTotalContainer = document.getElementById('bottomTotalGraphContainer');
+            if (bottomTotalContainer) {
+                bottomTotalContainer.innerHTML = `
+                    <div class="bg-[#13233f] border-2 border-slate-500 rounded-xl p-1.5 h-full flex items-center justify-center">
+                        ${createGraphSVG('Total', false)}
+                    </div>
+                `;
+            }
+
+            // 交点タップによる「？」予想マーカーのトグルイベント登録
+            document.querySelectorAll('.graph-grid-hit').forEach(hit => {
+                hit.addEventListener('click', (e) => {
+                    const gKey = e.currentTarget.getAttribute('data-graph');
+                    const sIdx = Number(e.currentTarget.getAttribute('data-step'));
+                    const yVal = Number(e.currentTarget.getAttribute('data-val'));
+
+                    if (!state.predictions[gKey]) state.predictions[gKey] = {};
+                    if (state.predictions[gKey][sIdx] === yVal) {
+                        delete state.predictions[gKey][sIdx];
+                    } else {
+                        state.predictions[gKey][sIdx] = yVal;
+                    }
+                    renderAllGraphs();
+                });
+            });
+        }
+
+        /**
+         * UI全体の表示更新（バッジ・ボタン・レイアウト・グラフ）
+         */
+        function updateUI() {
+            const counts = getStepCounts(state.dropStep);
+            const isHclBase = state.baseMode === 'hcl';
+
+            // 1. 実験パターンボタンのアクティブ状態
+            document.getElementById('modeHclBase').className = isHclBase
+                ? 'px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all bg-indigo-600 text-white shadow'
+                : 'px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all text-slate-300 hover:text-white';
+            document.getElementById('modeNaohBase').className = !isHclBase
+                ? 'px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all bg-indigo-600 text-white shadow'
+                : 'px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all text-slate-300 hover:text-white';
+
+            // 2. 表示レイアウト（100%ビーカー / 60:40連動 / 全グラフ一覧）の切り替え
+            const beakerSec = document.getElementById('beakerSection');
+            const graphSec = document.getElementById('graphSection');
+            const singleGraphView = document.getElementById('singleGraphView');
+            const allGraphsView = document.getElementById('allGraphsView');
+
+            const setViewBtnClass = (id, active) => {
+                document.getElementById(id).className = active
+                    ? 'px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all bg-amber-500 text-slate-950 shadow'
+                    : 'px-3 py-1.5 rounded-lg text-xs md:text-sm font-black transition-all text-slate-300 hover:text-white';
+            };
+            setViewBtnClass('viewBtnBeaker100', state.viewMode === 'beaker100');
+            setViewBtnClass('viewBtnSplit', state.viewMode === 'split');
+            setViewBtnClass('viewBtnAllGraphs', state.viewMode === 'allGraphs');
+
+            if (state.viewMode === 'beaker100') {
+                beakerSec.className = 'col-span-12 bg-white text-slate-900 rounded-2xl shadow-xl border-2 border-slate-300 p-3 flex flex-col justify-between relative overflow-hidden';
+                graphSec.className = 'hidden';
+            } else if (state.viewMode === 'split') {
+                beakerSec.className = 'col-span-12 lg:col-span-7 bg-white text-slate-900 rounded-2xl shadow-xl border-2 border-slate-300 p-3 flex flex-col justify-between relative overflow-hidden';
+                graphSec.className = 'col-span-12 lg:col-span-5 bg-slate-800 border-2 border-slate-600 rounded-2xl shadow-xl p-3 flex flex-col justify-between gap-2.5';
+                singleGraphView.className = 'flex-1 flex flex-col justify-between gap-2';
+                allGraphsView.className = 'hidden';
+            } else {
+                beakerSec.className = 'hidden';
+                graphSec.className = 'col-span-12 bg-slate-800 border-2 border-slate-600 rounded-2xl shadow-xl p-3 flex flex-col justify-between gap-2.5';
+                singleGraphView.className = 'hidden';
+                allGraphsView.className = 'flex-1 flex flex-col justify-between gap-3';
+            }
+
+            // レイアウト変更後にキャンバスサイズを再計算
+            requestAnimationFrame(resizeCanvas);
+
+            // 3. ビーカー上部バッジとイオン数カウンターの更新
+            const stepNames = ['段階 ①（最初）', '段階 ②（1滴追加）', '段階 ③（2滴・ちょうど中和）', '段階 ④（3滴追加）'];
+            document.getElementById('stepBadge').textContent = stepNames[state.dropStep];
+
+            const acidityBadge = document.getElementById('acidityBadge');
+            if (counts.H > counts.OH) {
+                acidityBadge.className = 'bg-yellow-300 border-2 border-yellow-600 text-yellow-950 px-4 py-1.5 rounded-xl text-sm md:text-lg font-black shadow-sm transition-colors duration-300';
+                acidityBadge.innerHTML = 'H<sup>+</sup>がある → 酸性（BTB液：黄色）';
+            } else if (counts.OH > counts.H) {
+                acidityBadge.className = 'bg-blue-500 border-2 border-blue-800 text-white px-4 py-1.5 rounded-xl text-sm md:text-lg font-black shadow-sm transition-colors duration-300';
+                acidityBadge.innerHTML = 'OH<sup>-</sup>がある → アルカリ性（BTB液：青色）';
+            } else {
+                acidityBadge.className = 'bg-emerald-400 border-2 border-emerald-700 text-emerald-950 px-4 py-1.5 rounded-xl text-sm md:text-lg font-black shadow-sm transition-colors duration-300';
+                acidityBadge.innerHTML = 'H<sup>+</sup>もOH<sup>-</sup>もない → 中性（BTB液：緑色）';
+            }
+
+            const diluteBadge = document.getElementById('waterDiluteBadge');
+            if (state.waterDiluteCount > 0) {
+                diluteBadge.classList.remove('hidden');
+            } else {
+                diluteBadge.classList.add('hidden');
+            }
+
+            document.getElementById('btnToggleBTB').textContent = state.showBTB ? '🎨 BTB液の色：ON' : '🎨 BTB液の色：OFF';
+
+            document.getElementById('countH').textContent = counts.H;
+            document.getElementById('countCl').textContent = counts.Cl;
+            document.getElementById('countNa').textContent = counts.Na;
+            document.getElementById('countOH').textContent = counts.OH;
+            document.getElementById('countTotal').textContent = counts.Total;
+            document.getElementById('countWater').textContent = counts.H2O;
+
+            // 4. グラフタブの選択ハイライト
+            const tabColorMap = {
+                H: 'bg-red-600 text-white',
+                Cl: 'bg-emerald-600 text-white',
+                Na: 'bg-orange-500 text-white',
+                OH: 'bg-blue-600 text-white',
+                Total: 'bg-purple-600 text-white',
+                All: 'bg-amber-500 text-slate-950'
+            };
+            document.querySelectorAll('.graph-tab-btn').forEach(btn => {
+                const key = btn.getAttribute('data-graph');
+                if (key === state.selectedGraphTab) {
+                    btn.className = `graph-tab-btn ${tabColorMap[key]} py-1.5 rounded-lg text-xs md:text-sm font-black shadow`;
+                } else {
+                    btn.className = 'graph-tab-btn text-slate-300 hover:text-white py-1.5 rounded-lg text-xs md:text-sm font-black';
+                }
+            });
+
+            document.getElementById('btnToggleGraphLine').textContent = state.showGraphLine ? '📈 実線を表示中' : '🙈 実線を隠す（予想用）';
+            document.getElementById('btnToggleGraphLine').className = state.showGraphLine
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg text-xs font-black transition'
+                : 'bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded-lg text-xs font-black transition';
+
+            // 5. スライド右下の穴埋め3問の表示更新
+            const blankAnswers = { 1: '2', 2: '2', 3: '変わらない' };
+            document.querySelectorAll('.quiz-blank-btn').forEach(btn => {
+                const bId = btn.getAttribute('data-blank');
+                if (state.quizRevealed[bId]) {
+                    btn.textContent = blankAnswers[bId];
+                    btn.classList.add('bg-yellow-400', 'text-slate-950');
+                    btn.classList.remove('bg-slate-900', 'text-yellow-300');
+                } else {
+                    btn.textContent = '？';
+                    btn.classList.remove('bg-yellow-400', 'text-slate-950');
+                    btn.classList.add('bg-slate-900', 'text-yellow-300');
+                }
+            });
+
+            // 6. フッターのステップ表示と操作ボタンの活性状態
+            const footerStepsEl = document.getElementById('footerStepIndicators');
+            footerStepsEl.innerHTML = STEP_LABELS.map((lbl, idx) => {
+                const active = idx === state.dropStep;
+                const passed = idx < state.dropStep;
+                return `
+                    <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black border-2 transition-all
+                        ${active ? 'bg-amber-400 border-white text-slate-950 scale-105 shadow' : (passed ? 'bg-slate-700 border-slate-500 text-slate-200' : 'bg-slate-900 border-slate-700 text-slate-500')}">
+                        ${lbl}
+                    </span>
+                `;
+            }).join('');
+
+            const addBtn = document.getElementById('btnAddDrop');
+            const addLabel = document.getElementById('btnAddDropLabel');
+            const addedChemName = isHclBase ? 'NaOH' : '塩酸(HCl)';
+            if (state.dropStep >= MAX_DROP_STEPS) {
+                addBtn.disabled = true;
+                addLabel.textContent = '④まで完了しました';
+            } else {
+                addBtn.disabled = state.isAnimatingDrop;
+                addLabel.textContent = `${addedChemName} を1滴加える（${STEP_LABELS[state.dropStep + 1]}へ）`;
+            }
+
+            document.getElementById('btnAddWater').disabled = state.isAnimatingDrop || state.waterDiluteCount >= 2;
+            document.getElementById('btnUndo').disabled = state.isAnimatingDrop || state.history.length === 0;
+
+            renderAllGraphs();
+        }
+
+        /**
+         * 初期化＆イベントリスナー登録
+         */
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // 実験パターンの切り替え
+            document.getElementById('modeHclBase').addEventListener('click', () => {
+                if (state.baseMode === 'hcl') return;
+                state.baseMode = 'hcl';
+                state.dropStep = 0;
+                state.waterDiluteCount = 0;
+                state.history = [];
+                rebuildBeakerParticles();
+                updateUI();
+            });
+
+            document.getElementById('modeNaohBase').addEventListener('click', () => {
+                if (state.baseMode === 'naoh') return;
+                state.baseMode = 'naoh';
+                state.dropStep = 0;
+                state.waterDiluteCount = 0;
+                state.history = [];
+                rebuildBeakerParticles();
+                updateUI();
+            });
+
+            // 画面レイアウト切り替え（100%ビーカー / 60:40連動 / 全グラフ一覧）
+            document.getElementById('viewBtnBeaker100').addEventListener('click', () => {
+                state.viewMode = 'beaker100';
+                updateUI();
+            });
+            document.getElementById('viewBtnSplit').addEventListener('click', () => {
+                state.viewMode = 'split';
+                updateUI();
+            });
+            document.getElementById('viewBtnAllGraphs').addEventListener('click', () => {
+                state.viewMode = 'allGraphs';
+                updateUI();
+            });
+
+            // BTB液の背景色トグル
+            document.getElementById('btnToggleBTB').addEventListener('click', () => {
+                state.showBTB = !state.showBTB;
+                updateUI();
+            });
+
+            // 特大グラフのタブ切り替え
+            document.querySelectorAll('.graph-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.selectedGraphTab = btn.getAttribute('data-graph');
+                    updateUI();
+                });
+            });
+
+            // グラフの実線表示/非表示トグル
+            document.getElementById('btnToggleGraphLine').addEventListener('click', () => {
+                state.showGraphLine = !state.showGraphLine;
+                updateUI();
+            });
+
+            // 予想マーカー全消去
+            document.getElementById('btnClearPredictions').addEventListener('click', () => {
+                state.predictions = { H: {}, Cl: {}, Na: {}, OH: {}, Total: {}, All: {} };
+                renderAllGraphs();
+            });
+
+            // スライド右下の穴埋め問題のタップ開閉
+            document.querySelectorAll('.quiz-blank-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const bId = btn.getAttribute('data-blank');
+                    state.quizRevealed[bId] = !state.quizRevealed[bId];
+                    updateUI();
+                });
+            });
+            document.getElementById('btnResetBlanks').addEventListener('click', () => {
+                state.quizRevealed = { 1: false, 2: false, 3: false };
+                updateUI();
+            });
+
+            // 下部操作ボタン群
+            document.getElementById('btnAddDrop').addEventListener('click', triggerAddDrop);
+            document.getElementById('btnAddWater').addEventListener('click', triggerAddWater);
+            document.getElementById('btnUndo').addEventListener('click', triggerUndo);
+            document.getElementById('btnReset').addEventListener('click', () => {
+                state.dropStep = 0;
+                state.waterDiluteCount = 0;
+                state.history = [];
+                updateWaterLevel();
+                rebuildBeakerParticles();
+                updateUI();
+            });
+
+            // ビーカー上部の待機カプセルを直接タップしても1滴加えられるようにする
+            canvas.addEventListener('pointerdown', (e) => {
+                if (state.isAnimatingDrop || state.dropStep >= MAX_DROP_STEPS) return;
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                const capX = beakerRect.x + beakerRect.w * 0.5;
+                const capY = Math.max(52, beakerRect.y - 32);
+                if (Math.abs(clickX - capX) < 90 && Math.abs(clickY - capY) < 75) {
+                    triggerAddDrop();
+                }
+            });
+
+            rebuildBeakerParticles();
+            updateUI();
+            animateBeaker();
+        });
+    </script>
+</body>
+</html>
